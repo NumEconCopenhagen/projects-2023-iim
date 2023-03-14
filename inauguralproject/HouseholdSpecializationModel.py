@@ -93,7 +93,7 @@ class HouseholdSpecializationModelClass:
     
         # d. find maximizing argument
         j = np.argmax(u)
-        
+        # test
         opt.LM = LM[j]
         opt.HM = HM[j]
         opt.LF = LF[j]
