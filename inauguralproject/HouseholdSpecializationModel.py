@@ -1,10 +1,9 @@
-
 from types import SimpleNamespace
 
 import numpy as np
 from scipy import optimize
 
-import pandas as pd 
+#import pandas as pd 
 import matplotlib.pyplot as plt
 
 class HouseholdSpecializationModelClass:
@@ -54,7 +53,12 @@ class HouseholdSpecializationModelClass:
         C = par.wM*LM + par.wF*LF
 
         # b. home production
-        H = HM**(1-par.alpha)*HF**par.alpha
+        if par.sigma == 1:
+            H = HM**(1-par.alpha)*HF**par.alpha
+        elif par.sigma == 0:
+            H = min(HM,HF)
+        else:
+            H = ((1-par.alpha)*HM**((par.sigma-1)/par.sigma)+par.alpha*HF**((par.sigma-1)/par.sigma))
 
         # c. total consumption utility
         Q = C**par.omega*H**(1-par.omega)
@@ -93,7 +97,7 @@ class HouseholdSpecializationModelClass:
     
         # d. find maximizing argument
         j = np.argmax(u)
-        # test
+        
         opt.LM = LM[j]
         opt.HM = HM[j]
         opt.LF = LF[j]
