@@ -1,9 +1,9 @@
 from types import SimpleNamespace
 
 import numpy as np
+
 from scipy import optimize
 
-#import pandas as pd 
 import matplotlib.pyplot as plt
 
 class HouseholdSpecializationModelClass:
@@ -29,6 +29,9 @@ class HouseholdSpecializationModelClass:
         par.wM = 1.0
         par.wF = 1.0
         par.wF_vec = np.linspace(0.8,1.2,5)
+        par.lnwFwH_vec = np.log(par.wF_vec/par.wM)
+        par.sigma_vec = [0.5, 1, 1.5]
+        par.alpha_vec = [0.25, 0.50, 0.75]
 
         # e. targets
         par.beta0_target = 0.4
@@ -51,15 +54,17 @@ class HouseholdSpecializationModelClass:
 
         # a. consumption of market goods
         C = par.wM*LM + par.wF*LF
-
+        
         # b. home production
+         # b. home production
         if par.sigma == 1:
             H = HM**(1-par.alpha)*HF**par.alpha
+            
         elif par.sigma == 0:
-            H = min(HM,HF)
+            H = np.minimum(HM,HF)
         else:
-            H = ((1-par.alpha)*HM**((par.sigma-1)/par.sigma)+par.alpha*HF**((par.sigma-1)/par.sigma))
-
+            H = ((1-par.alpha)*HM**((par.sigma-1)/par.sigma)+par.alpha*HF**((par.sigma-1)/par.sigma))**(par.sigma/(par.sigma-1))
+            
         # c. total consumption utility
         Q = C**par.omega*H**(1-par.omega)
         utility = np.fmax(Q,1e-8)**(1-par.rho)/(1-par.rho)
@@ -98,23 +103,49 @@ class HouseholdSpecializationModelClass:
         # d. find maximizing argument
         j = np.argmax(u)
         
-        opt.LM = LM[j]
+        sol.LM = LM[j]
         opt.HM = HM[j]
-        opt.LF = LF[j]
+        sol.LF = LF[j]
         opt.HF = HF[j]
-
+        
+        opt.lnHFHM = np.log(opt.HF/opt.HM)
+        opt.HF_div_HM = opt.HF/opt.HM
+        opt.alpha = par.alpha
+        opt.sigma = par.sigma
         # e. print
         if do_print:
             for k,v in opt.__dict__.items():
                 print(f'{k} = {v:6.4f}')
+        
+        opt.par_list = [opt.HM, opt.HF, opt.HF_div_HM, opt.lnHFHM, opt.alpha, opt.sigma]
+        return opt.par_list
 
-        return opt
-
+    
     def solve(self,do_print=False):
         """ solve model continously """
+        par = self.par
+        sol = self.sol
+        opt = SimpleNamespace()
+        
+        def obj(x):
+            return -self.calc_utility(x[0], x[1], x[2], x[3])
 
-        pass    
+        xguess = [12, 12, 12, 12]
+        constraint1 = ({"type": "ineq", "fun": lambda x: -x[0]-x[1]+24})
+        constraint2 = ({"type": "ineq", "fun": lambda x: -x[2]-x[3]+24})
+        constraints = [constraint1, constraint2]
+        bounds = [(0,24)]*4
+        results = optimize.minimize(obj,xguess,method='SLSQP',  bounds = bounds, constraints = constraints)
+        #opt.results = results.x
+        sol.LM = results.x[0]
+        sol.HM = results.x[1]
+        sol.LF = results.x[2]
+        sol.HF = results.x[3]
 
+        opt.lnHFHM = np.log(sol.HF/sol.HM)
+        
+        return opt.lnHFHM
+    
     def solve_wF_vec(self,discrete=False):
         """ solve model for vector of female wages """
 
@@ -133,5 +164,12 @@ class HouseholdSpecializationModelClass:
     
     def estimate(self,alpha=None,sigma=None):
         """ estimate alpha and sigma """
+        
+        xguess = [12, 12, 12, 12]
+        par = self.par
+        sol = self.sol
 
-        pass
+        objective = (sol.beta0 - par.beta0_target)**2 + (sol.beta1 - par.beta1_target)**2
+        results = optimize.minimize(objective,xguess,args=(par,),method='Nelder-Mead')
+        
+        return results
