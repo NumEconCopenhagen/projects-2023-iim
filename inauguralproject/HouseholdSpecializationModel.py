@@ -56,7 +56,7 @@ class HouseholdSpecializationModelClass:
         C = par.wM*LM + par.wF*LF
         
         # b. home production
-         # b. home production
+        
         if par.sigma == 1:
             H = HM**(1-par.alpha)*HF**par.alpha
             
@@ -119,6 +119,7 @@ class HouseholdSpecializationModelClass:
         
         opt.par_list = [opt.HM, opt.HF, opt.HF_div_HM, opt.lnHFHM, opt.alpha, opt.sigma]
         return opt.par_list
+    
 
     
     def solve(self,do_print=False):
@@ -146,10 +147,31 @@ class HouseholdSpecializationModelClass:
         
         return opt.lnHFHM
     
-    def solve_wF_vec(self,discrete=False):
+    def solve_wF_vec_4(self,discrete=False):
         """ solve model for vector of female wages """
 
-        pass
+        par = self.par
+        sol = self.sol
+
+        #loop over the vector of female wage and change the value of wF to whereever we are in the vector 
+        for i, wF in enumerate(par.wF_vec):
+            par.wF = wF
+
+            #solve the model with the discrete solver if keyword argument above is true
+            
+            solve = self.solve_discrete_4()
+            
+            #use the contiuous solver if keyword argument above is false 
+
+
+            #store the resulting values 
+            sol.LM_vec[i] = solve.LM
+            sol.HM_vec[i] = solve.HM
+            sol.LF_vec[i] = solve.LF
+            sol.HF_vec[i] = solve.HF
+
+        return sol
+
 
     def run_regression(self):
         """ run regression """
@@ -161,15 +183,74 @@ class HouseholdSpecializationModelClass:
         y = np.log(sol.HF_vec/sol.HM_vec)
         A = np.vstack([np.ones(x.size),x]).T
         sol.beta0,sol.beta1 = np.linalg.lstsq(A,y,rcond=None)[0]
+
+        return sol.beta0, sol.beta1
     
+
     def estimate(self,alpha=None,sigma=None):
         """ estimate alpha and sigma """
-        
-        xguess = [12, 12, 12, 12]
+
         par = self.par
         sol = self.sol
 
-        objective = (sol.beta0 - par.beta0_target)**2 + (sol.beta1 - par.beta1_target)**2
-        results = optimize.minimize(objective,xguess,args=(par,),method='Nelder-Mead')
+        #Defining our value_of_choice function to minimize 
+        def objective_function(x):
+            par.alpha = x[0]
+            par.sigma = x[1]
+            
+            self.solve_wF_vec_4()
+            self.run_regression()
+            
+            return(par.beta0_target-sol.beta0)**2 + (par.beta1_target-sol.beta1)**2
+
+        bounds = [(0, 1), (0, 1.5)]
+
+        alpha_sigma_guess = [0.5, 1]
         
-        return results
+        result = optimize.minimize(objective_function, alpha_sigma_guess, method='Nelder-Mead',bounds=bounds, tol = 10e-2)
+
+        alpha = result.x[0]
+        sigma = result.x[1]
+
+        return alpha, sigma, 
+
+
+### Making a new solve_discrete function in order to return a different output than needed in #1.
+    def solve_discrete_4(self,do_print=False):
+        """ solve model discretely """
+        
+        par = self.par
+        sol = self.sol
+        opt = SimpleNamespace()
+        
+        # a. all possible choices
+        x = np.linspace(0,24,49)
+        LM,HM,LF,HF = np.meshgrid(x,x,x,x) # all combinations
+    
+        LM = LM.ravel() # vector
+        HM = HM.ravel()
+        LF = LF.ravel()
+        HF = HF.ravel()
+
+        # b. calculate utility
+        u = self.calc_utility(LM,HM,LF,HF)
+    
+        # c. set to minus infinity if constraint is broken
+        I = (LM+HM > 24) | (LF+HF > 24) # | is "or"
+        u[I] = -np.inf
+    
+        # d. find maximizing argument
+        j = np.argmax(u)
+        
+        
+        opt.LM = LM[j]
+        opt.HM = HM[j]
+        opt.LF = LF[j]
+        opt.HF = HF[j]
+
+        # e. print
+        if do_print:
+            for k,v in opt.__dict__.items():
+                print(f'{k} = {v:6.4f}')
+
+        return opt
