@@ -56,7 +56,6 @@ class HouseholdSpecializationModelClass:
         C = par.wM*LM + par.wF*LF
         
         # b. home production
-        
         if par.sigma == 1:
             H = HM**(1-par.alpha)*HF**par.alpha
             
@@ -103,16 +102,17 @@ class HouseholdSpecializationModelClass:
         # d. find maximizing argument
         j = np.argmax(u)
         
-        sol.LM = LM[j]
+        opt.LM = LM[j]
         opt.HM = HM[j]
-        sol.LF = LF[j]
+        opt.LF = LF[j]
         opt.HF = HF[j]
         
         opt.lnHFHM = np.log(opt.HF/opt.HM)
         opt.HF_div_HM = opt.HF/opt.HM
         opt.alpha = par.alpha
         opt.sigma = par.sigma
-        # e. print
+       
+       # e. print
         if do_print:
             for k,v in opt.__dict__.items():
                 print(f'{k} = {v:6.4f}')
@@ -120,34 +120,39 @@ class HouseholdSpecializationModelClass:
         opt.par_list = [opt.HM, opt.HF, opt.HF_div_HM, opt.lnHFHM, opt.alpha, opt.sigma]
         return opt.par_list
     
-
     
-    def solve(self,do_print=False):
+    def solve_continous(self,do_print=False):
         """ solve model continously """
         par = self.par
         sol = self.sol
         opt = SimpleNamespace()
         
-        def obj(x):
-            return -self.calc_utility(x[0], x[1], x[2], x[3])
+        # Objective function
+        obj = lambda x: -self.calc_utility(x[0], x[1], x[2], x[3])
 
+        # Initial guess 
         xguess = [12, 12, 12, 12]
-        constraint1 = ({"type": "ineq", "fun": lambda x: -x[0]-x[1]+24})
-        constraint2 = ({"type": "ineq", "fun": lambda x: -x[2]-x[3]+24})
-        constraints = [constraint1, constraint2]
-        bounds = [(0,24)]*4
-        results = optimize.minimize(obj,xguess,method='SLSQP',  bounds = bounds, constraints = constraints)
-        #opt.results = results.x
-        sol.LM = results.x[0]
-        sol.HM = results.x[1]
-        sol.LF = results.x[2]
-        sol.HF = results.x[3]
 
-        opt.lnHFHM = np.log(sol.HF/sol.HM)
+        # Constraints and bounds
+        constraint1 = lambda x: -x[0]-x[1]+24
+        constraint2 = lambda x: -x[2]-x[3]+24
+        constraints = [{'type': 'ineq', 'fun': constraint1},{'type': 'ineq', 'fun': constraint2}]
+        bounds = [(0,24)]*4
+        results = optimize.minimize(obj, xguess, method='SLSQP',  bounds = bounds, constraints = constraints)
         
-        return opt.lnHFHM
+        #opt.results = results.x
+        opt.LM = sol.LM = results.x[0]
+        opt.HM = sol.HM = results.x[1]
+        opt.LF = sol.LF = results.x[2]
+        opt.HF = sol.HF = results.x[3]
+
+        # Printing result
+        if do_print:
+            for k,v in opt.__dict__.items():
+                print(f'{k} = {v:6.4f}')  
+        return opt
     
-    def solve_wF_vec_4(self,discrete=False):
+    def solve_wF_vec(self,discrete=False):
         """ solve model for vector of female wages """
 
         par = self.par
@@ -155,14 +160,13 @@ class HouseholdSpecializationModelClass:
 
         #loop over the vector of female wage and change the value of wF to whereever we are in the vector 
         for i, wF in enumerate(par.wF_vec):
-            par.wF = wF
-
-            #solve the model with the discrete solver if keyword argument above is true
+            self.par.wF = wF
             
-            solve = self.solve_discrete_4()
-            
-            #use the contiuous solver if keyword argument above is false 
-
+            #Solve model
+            if discrete:
+                solve = self.solve_discrete()
+            else:
+                solve = self.solve_continous()
 
             #store the resulting values 
             sol.LM_vec[i] = solve.LM
