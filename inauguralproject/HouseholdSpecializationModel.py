@@ -120,6 +120,32 @@ class HouseholdSpecializationModelClass:
         opt.par_list = [opt.HM, opt.HF, opt.HF_div_HM, opt.lnHFHM, opt.alpha, opt.sigma]
         return opt.par_list
     
+
+    def solve(self,do_print=False):
+        """ solve model continously """
+        par = self.par
+        sol = self.sol
+        opt = SimpleNamespace()
+        
+        def obj(x):
+            return -self.calc_utility(x[0], x[1], x[2], x[3])
+
+        xguess = [12, 12, 12, 12]
+        constraint1 = ({"type": "ineq", "fun": lambda x: -x[0]-x[1]+24})
+        constraint2 = ({"type": "ineq", "fun": lambda x: -x[2]-x[3]+24})
+        constraints = [constraint1, constraint2]
+        bounds = [(0,24)]*4
+        results = optimize.minimize(obj,xguess,method='SLSQP',  bounds = bounds, constraints = constraints, tol=1e-10)
+        #opt.results = results.x
+        sol.LM = results.x[0]
+        sol.HM = results.x[1]
+        sol.LF = results.x[2]
+        sol.HF = results.x[3]
+
+        opt.lnHFHM = np.log(sol.HF/sol.HM)
+        
+        return opt.lnHFHM
+
     
     def solve_continous(self,do_print=False):
         """ solve model continously """
@@ -128,6 +154,7 @@ class HouseholdSpecializationModelClass:
         opt = SimpleNamespace()
         
         # Objective function
+       
         obj = lambda x: -self.calc_utility(x[0], x[1], x[2], x[3])
 
         # Initial guess 
