@@ -1,6 +1,6 @@
 # Data analysis project
 
-Our project is titled **# Effect of municipalities on education level** and is about how education lavels differ acrees the five regions ind Denmark.
+Our project is titled **# Effect of regions on education level** and is about how education lavels differ acrees the five regions ind Denmark.
 
 The **results** of the project can be seen from running [dataproject.ipynb](dataproject.ipynb).
 
