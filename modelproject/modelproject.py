@@ -1,39 +1,44 @@
 import numpy as np
 from scipy import optimize
 import sympy as sm
-from types import SimpleNamespace 
+from sympy import *
+from types import SimpleNamespace
+import matplotlib as plt
+from ipywidgets import interact, FloatSlider
 
-class modelprojectClass:
-
-    def __init__(self):
+class ModelProjectClass:
+    
+    def __init__(self, n):
         """ setup model """
 
-    # a. create namespaces
-        par = self.par = SimpleNamespace()
-        sol = self.sol = SimpleNamespace()
+        # a. creating namespaces
+        self.par = SimpleNamespace()
 
-        # b. setting  endogenous variabels
-        par.a = 1
-        par.b = 1
-        par.c = 1
+        # b. defining the cost function
+        def c(q):
+            return self.par.c * np.sum(q)
+        self.cost = c
 
-        # c. setting endogenous variables 
-        def p(self, x1, x2): 
-            x = x1 + x2
-            return par.a - par.b * x
+        # c. dDefininf the revenue
+        def r(p):
+            return p * self.q(p)
+        self.rev = r
+
+    # defining the inverse demand funtion
+    def q(self, p):
+        return (self.par.a - p) / self.par.b / self.par.n
+
+    def EQ(self, a, b, c, n):
+        """ Finding equilibrium for all firms """
+
+        # a. setting parameters
+        self.par.a = a
+        self.par.b = b
+        self.par.c = c
+        self.par.n = n
+
+        # b. optimal EQ amounts given the optimal price
+        initial_guess = np.ones(n) / n
+        p_opt = optimize.minimize(lambda p: -self.rev(p) + self.cost(np.ones(n) * self.q(p)), x0=self.par.a, bounds=[(0, None)])
         
-        def C(x):
-            C = par.c * x
-            return C
-    
-    def solve_ss(alpha, c):  
-    
-
-    # a. Objective function, depends on k (endogenous) and c (exogenous).
-        f = lambda k: k**alpha - c
-        obj = lambda kss: kss - f(kss)
-
-    #. b. call root finder to find kss.
-        result = optimize.root_scalar(obj,bracket=[0.1,100],method='bisect')
-    
-        return result
+        return np.maximum(self.q(p_opt.x) * n, 0)
