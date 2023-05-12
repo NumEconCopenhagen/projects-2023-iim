@@ -4,7 +4,7 @@ import sympy as sm
 from sympy import *
 from types import SimpleNamespace
 import matplotlib as plt
-from ipywidgets import interact, FloatSlider
+
 
 class ModelProjectClass:
     
@@ -15,18 +15,25 @@ class ModelProjectClass:
         self.par = SimpleNamespace()
 
         # b. defining the cost function
-        def c(q):
-            return self.par.c * np.sum(q)
-        self.cost = c
+    def cost(self, q):
+        return self.par.c * np.sum(q)
+    #self.cost = c
 
-        # c. dDefininf the revenue
-        def r(p):
+    # c. dDefininf the revenue
+    def rev(self,p):
+        # Imposing restrictions that the price cannot be negative
+        if p >= 0:
             return p * self.q(p)
-        self.rev = r
+        else:
+            return -np.inf
+    
+
 
     # defining the inverse demand funtion
     def q(self, p):
+        
         return (self.par.a - p) / self.par.b / self.par.n
+        
 
     def EQ(self, a, b, c, n):
         """ Finding equilibrium for all firms """
@@ -41,4 +48,7 @@ class ModelProjectClass:
         initial_guess = np.ones(n) / n
         p_opt = optimize.minimize(lambda p: -self.rev(p) + self.cost(np.ones(n) * self.q(p)), x0=self.par.a, bounds=[(0, None)])
         
-        return np.maximum(self.q(p_opt.x) * n, 0)
+        sol_q = np.maximum(self.q(p_opt.x) * n, 0)
+        sol_p = self.par.a - self.par.b * sol_q * self.par.n
+ 
+        return sol_q, sol_p, self.par.a, self.par.b, self.par.c, self.par.n
