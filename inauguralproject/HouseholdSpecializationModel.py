@@ -127,15 +127,18 @@ class HouseholdSpecializationModelClass:
         sol = self.sol
         opt = SimpleNamespace()
         
+        # Define the objective function
         def obj(x):
             return -self.calc_utility(x[0], x[1], x[2], x[3])
 
+        # Solving the optimization problem using the SLSQP method
         xguess = [12, 12, 12, 12]
         constraint1 = ({"type": "ineq", "fun": lambda x: -x[0]-x[1]+24})
         constraint2 = ({"type": "ineq", "fun": lambda x: -x[2]-x[3]+24})
         constraints = [constraint1, constraint2]
         bounds = [(0,24)]*4
         results = optimize.minimize(obj,xguess,method='SLSQP',  bounds = bounds, constraints = constraints, tol=1e-10)
+        
         #opt.results = results.x
         sol.LM = results.x[0]
         sol.HM = results.x[1]
@@ -154,7 +157,6 @@ class HouseholdSpecializationModelClass:
         opt = SimpleNamespace()
         
         # Objective function
-       
         obj = lambda x: -self.calc_utility(x[0], x[1], x[2], x[3])
 
         # Initial guess 
