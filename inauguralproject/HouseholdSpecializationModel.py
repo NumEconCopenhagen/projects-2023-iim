@@ -247,43 +247,32 @@ class HouseholdSpecializationModelClass:
 
         return alpha, sigma, 
 
-
-### Making a new solve_discrete function in order to return a different output than needed in #1.
-    def solve_discrete_4(self,do_print=False):
-        """ solve model discretely """
+  
+    def extension(self,do_print=False):
+        """ solve the extented model """
         
         par = self.par
         sol = self.sol
         opt = SimpleNamespace()
         
-        # a. all possible choices
-        x = np.linspace(0,24,49)
-        LM,HM,LF,HF = np.meshgrid(x,x,x,x) # all combinations
-    
-        LM = LM.ravel() # vector
-        HM = HM.ravel()
-        LF = LF.ravel()
-        HF = HF.ravel()
+        # Define the objective function
+        def obj(x):
+            return -self.calc_utility(x[0], x[1], x[2], x[3])
 
-        # b. calculate utility
-        u = self.calc_utility(LM,HM,LF,HF)
-    
-        # c. set to minus infinity if constraint is broken
-        I = (LM+HM > 24) | (LF+HF > 24) # | is "or"
-        u[I] = -np.inf
-    
-        # d. find maximizing argument
-        j = np.argmax(u)
+        # Solving the optimization problem using the SLSQP method
+        xguess = [12, 12, 12, 12]
+        constraint1 = ({"type": "ineq", "fun": lambda x: -x[0]-x[1]*0.5+24})
+        constraint2 = ({"type": "ineq", "fun": lambda x: -x[2]-x[3]+24})
+        constraints = [constraint1, constraint2]
+        bounds = [(0,24)]*4
+        results = optimize.minimize(obj,xguess,method='SLSQP',  bounds = bounds, constraints = constraints, tol=1e-10)
         
-        
-        opt.LM = LM[j]
-        opt.HM = HM[j]
-        opt.LF = LF[j]
-        opt.HF = HF[j]
+        #opt.results = results.x
+        sol.LM = results.x[0]
+        sol.HM = results.x[1]
+        sol.LF = results.x[2]
+        sol.HF = results.x[3]
 
-        # e. print
-        if do_print:
-            for k,v in opt.__dict__.items():
-                print(f'{k} = {v:6.4f}')
+        opt.lnHFHM = np.log(sol.HF/sol.HM*0.5)
 
         return opt
