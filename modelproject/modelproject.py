@@ -7,18 +7,18 @@ import numpy as np
 class ModelProjectClass:
     def cournotmodel(self, n, a, b, c):
         """ setup cournot model"""
-        # Making a list to hold the quantities produced for each firm
+        # Create a list to hold the quantities produced for each firm
         q_liste = np.ones(n)
 
-        # Creating the demand function
+        # Create the demand function
         def demand(q_liste, a, b):
             return a - np.matmul(b * np.ones(len(q_liste)), q_liste)
 
-        # Creating the profit function
+        # Create the profit function
         def profit(q_liste, firm, a, b, c):
             return (demand(q_liste, a, b) - c) * q_liste[firm]
 
-        # Creating the profit max function
+        # Create the profit max function
         def profitmax(q_liste, firm, a, b, c):
             def opt_response(q_new):
                 q_liste_new = q_liste.copy()
@@ -30,36 +30,36 @@ class ModelProjectClass:
 
             return q_opt_response
 
-        # Creating best response
+        # Create best response
         def profitmax_vector(q_liste, a, b, c):
             
             # List to store each firms BR
             BR = []
 
-            # Iterting over each firm and append in the BR list
+            # Iterate over each firm and append in the BR list
             for firm in range(len(q_liste)):
                 BR.append(profitmax(q_liste, firm, a, b, c))
 
-            # Converting thew list to a 1-dimensional array
+            # Convert the list to a 1-dimensional array
             BR = np.array(BR).reshape(-1)
 
             return q_liste - BR
 
-        # Optimizing to find the optimal equilibrium quantities
+        # Optimize to find the optimal equilibrium quantities
         EQ = optimize.fsolve(profitmax_vector, q_liste, args=(a, b, c))
 
         return EQ
 
     def Results(self, n, a, b, c):
-        # Making empty lists to store the results
+        # Create empty lists to store the results
         EQ_list = []
         n_list = []
 
-        # Loop over n firms and appending the results
+        # Loop over n firms and append the results
         for n_val in range(2, n + 1):
             n_list.append(n_val)
 
-            # Finding the optimal quantities responding to n number of firms and appending the results
+            # Find the optimal quantities responding to n number of firms and append the results
             EQ_iter = self.cournotmodel(n_val, a, b, c)
             EQ_list.append(EQ_iter[0])
 
