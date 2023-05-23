@@ -14,8 +14,13 @@ We use the following datasets:
 ``%pip install git+https://github.com/elben10/pydst``
 
 ``%pip install pandas-datareader``
+
 ``%pip install geopandas``
+
 ``%pip install mapclassify``
+
 ``%pip install folium``
+
 ``%pip install branca``
+
 ``%pip install fiona``
