@@ -51,7 +51,7 @@ class dataprojectclass:
         fig = df[(df['EDUCATION'] == education) & (df['Date'].isin([2010, 2022]))]
             
         # Create bar plot
-        ax = sns.barplot(data=fig, x='REGION', y='ratio', hue='Date', errorbar = None)
+        ax = sns.barplot(data=fig, x='REGION', y='ratio', hue='Date', ci = None)
             
         # Rotate x-axis labels
         #plt.xticks(rotation=90)
