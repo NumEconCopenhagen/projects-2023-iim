@@ -12,6 +12,7 @@ We use the following datasets:
 **Summary:** Our project is titled **# Educational levels in Denmark** and analysis how education levels differ acrees municipalities and regions ind Denmark.
 
 ``%pip install git+https://github.com/elben10/pydst``
+
 ``%pip install pandas-datareader``
 ``%pip install geopandas``
 ``%pip install mapclassify``
